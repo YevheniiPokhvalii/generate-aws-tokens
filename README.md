@@ -1,17 +1,22 @@
-# The script for generating AWS tokens and updating a kubeconfig file
+# The script for generating AWS tokens, working with AWS profiles, and updating a kubeconfig file
 
-> Replace `user_email@gmail.com` in the script with your email address<br>
+Goals: at the time of writing, the current version of `aws-cli/2.7.2` does not have a convenient way to work with AWS profiles, specifically with temporary AWs profiles and tokens. This script aims to improve this experience.<br>
+
+Prerequisites: `aws-cli` v2, generated AWS profile with `aws configure`, `kubectl`<br>
 
 This script should be sourced in order to get the variables working in the current shell.<br>
 Example: `source script.sh` or `. script.sh`<br>
 
 Without flags, this script generates AWS tokens for the chosen AWS profile.<br>
-Flag `-c` unsets the following variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_PROFILE`<br>
-Flag `-u` updates a `kubeconfig` file<br>
-Flag `-p` switches between AWS profiles (`AWS_PROFILE` variable)<br>
+Flag `-c` unsets the following variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_PROFILE`.<br>
+Flag `-u` updates a `kubeconfig` file so that you can connect to an Amazon EKS cluster.<br>
+Flag `-g` displays a `kubeconfig` file for the current context (can be used for Lens).<br>
+Flag `-o` prints the current unmasked AWS variables.<br>
+Flag `-p` switches between AWS profiles (`AWS_PROFILE` variable).<br>
+Flag `-t` configures a temporary MFA AWS profile that can be used across shells. This temporary MFA profile does not depend on the token shell variables. However, since it is added to the `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE` paths, it should be removed from the files manually or you can try the flag `-d`. The default location: `~/.aws/config` and `~/.aws/credentials`.<br>
+Flag `-d` removes an AWS profile from the configuration files indicated in `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE`. The default location: `~/.aws/config` and `~/.aws/credentials`. Be very careful with this flag. The backup of you current `~/.aws/config` and `~/.aws/credentials` is recommended. Though this flag can be used with both default and MFA profiles, it was specifically created to use with the temporary MFA AWS profiles and there is no guarantee that it will correctly remove a profile with additional details.
 
-Flags that do not require sourcing (you can run them via `./script.sh` or `sh ./script.sh`):
-Flag `-g` generates a kubeconfig file for the current context<br>
-Flag `-o` prints the current unmasked AWS variables<br>
+> If you receive `(AccessDeniedException)` error while running a script with the flag `-g`, don't forget to generate tokens first - run the script without flags.
 
-> Bugs: sometimes flags do not work properly with sourcing. Solution: re-run the script in a new shell.<br>
+> Bugs: sometimes flags may not work properly as if the script is run without a flag. Solution: re-run the script in a new shell or replace the shell with `exec bash`, `exec zsh` or `exec $(echo $0)`.<br>
+There is a `replace_shell` function in the code that fixes this issue partially.
