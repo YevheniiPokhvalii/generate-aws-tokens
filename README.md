@@ -4,7 +4,7 @@
 **Related issues**: 
 https://github.com/aws/aws-cli/issues/6979
 https://github.com/aws/aws-cli/issues/6980
-https://github.com/aws/aws-cli/issues/3346
+https://github.com/aws/aws-cli/issues/3346<br>
 **Docs**: 
 https://aws.amazon.com/premiumsupport/knowledge-center/authenticate-mfa-cli/
 https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html<br>
