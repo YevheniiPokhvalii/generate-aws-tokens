@@ -16,7 +16,5 @@ Flag `-p` switches between AWS profiles (`AWS_PROFILE` variable).<br>
 Flag `-t` configures a temporary MFA AWS profile that can be used across shells. This temporary MFA profile does not depend on the token shell variables. However, since it is added to the `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE` paths, it should be removed from the files manually or you can try the flag `-d`. The default location: `~/.aws/config` and `~/.aws/credentials`.<br>
 Flag `-d` removes an AWS profile from the configuration files indicated in `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE`. The default location: `~/.aws/config` and `~/.aws/credentials`. Be very careful with this flag. The backup of you current `~/.aws/config` and `~/.aws/credentials` is recommended. Though this flag can be used with both default and MFA profiles, it was specifically created to use with the temporary MFA AWS profiles and there is no guarantee that it will correctly remove a profile with additional details.
 
-> If you receive `(AccessDeniedException)` error while running a script with the flag `-g`, don't forget to generate tokens first - run the script without flags.
-
-> Bugs: sometimes flags may not work properly as if the script is run without a flag. Solution: re-run the script in a new shell or replace the shell with `exec bash`, `exec zsh` or `exec $(echo $0)`.<br>
-There is a `replace_shell` function in the code that fixes this issue partially.
+> If you receive `(AccessDeniedException)` error during token generation for an empty profile, try to regenerate tokens or unset the token variables before generating new ones.
+If you receive `(AccessDeniedException)` error while running a script with the flag `-g`, don't forget to generate tokens first - run the script without flags.
