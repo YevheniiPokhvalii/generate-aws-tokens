@@ -162,7 +162,7 @@ print_unmasked_var()
    printenv | grep "AWS_PROFILE" || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
-aws_unset()
+aws_vars_unset()
 {
    echo "Variable unset must be done in the current shell only."
    echo "------------------"
@@ -186,7 +186,7 @@ do
 		;;
 	-c|--clear)
       # uset aws token variables
-      aws_unset
+      aws_vars_unset
       print_masked_var
 		return 0
 		;;
