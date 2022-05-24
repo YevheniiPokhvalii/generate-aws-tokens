@@ -20,25 +20,24 @@ help()
    echo
 }
 
-aws_unset()
+select_aws_creds()
 {
-   echo "Variable unset must be done in the current shell only."
-   echo "------------------"
-   unset AWS_ACCESS_KEY_ID
-   unset AWS_SECRET_ACCESS_KEY
-   unset AWS_SESSION_TOKEN
-   unset AWS_PROFILE
+   if [ ! -n "${AWS_CONFIG_FILE}" ]; then
+      AWS_CONFIG_FILE=~/.aws/config
+   fi
+   if [ ! -n "${AWS_SHARED_CREDENTIALS_FILE}" ]; then
+      AWS_SHARED_CREDENTIALS_FILE=~/.aws/credentials
+   fi
 }
 
 select_aws_profile(){
+   # call a function with credentials paths
+   select_aws_creds
+
    # an additional grep is added to colorize the output
    echo "Choose AWS profile: "
    echo "[$AWS_PROFILE] <-- Active profile (empty by default)" | grep "$AWS_PROFILE" --color=always
    aws_profile_before="$AWS_PROFILE"
-
-   if [ ! -n "${AWS_CONFIG_FILE}" ]; then
-      AWS_CONFIG_FILE=~/.aws/config
-   fi
 
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | awk '!/^'"$AWS_PROFILE"'$/' | grep ".*" --color=always || true
@@ -58,16 +57,6 @@ select_aws_profile(){
    fi
 
    printenv | grep AWS_PROFILE || echo "AWS_PROFILE=$AWS_PROFILE"
-}
-
-select_aws_creds()
-{
-   if [ ! -n "${AWS_CONFIG_FILE}" ]; then
-      AWS_CONFIG_FILE=~/.aws/config
-   fi
-   if [ ! -n "${AWS_SHARED_CREDENTIALS_FILE}" ]; then
-      AWS_SHARED_CREDENTIALS_FILE=~/.aws/credentials
-   fi
 }
 
 select_aws_region()
@@ -173,77 +162,83 @@ print_unmasked_var()
    printenv | grep "AWS_PROFILE" || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
-# Unsource the script to avoid bugs with the script flags.
-# This function solves this problem by replacing the user shell after the script has been sourced with flags.
-# It checks whether the script is sourced or not and replaces the shell.
-# The check is necessary in order not to invoke redundant shell processes.
-# It is added after each flag. 
-# Note: $0 does not change after being sourced in zsh unlike bash; hence, it requires a different check.
-#
-replace_shell(){
-   if [ -n "$ZSH_EVAL_CONTEXT" ]; then 
-      case $ZSH_EVAL_CONTEXT in *:file*) exec zsh;; esac
-   else
-      case ${0##*/} in sh|dash|bash) exec bash;; esac
-   fi
+aws_unset()
+{
+   echo "Variable unset must be done in the current shell only."
+   echo "------------------"
+   unset AWS_ACCESS_KEY_ID
+   unset AWS_SECRET_ACCESS_KEY
+   unset AWS_SESSION_TOKEN
+   unset AWS_PROFILE
 }
 
-while getopts ":hcugoptd" option; do
-   case $option in
-      h) # display Help
-         help
-         replace_shell
-         return;;
-         # exit;;
-      c) # uset aws token variables
-         aws_unset
-         print_masked_var
-         replace_shell
-         return;;
-         # exit;;
-      u) # update kubeconfig file
-         select_aws_profile
-         select_aws_region
-         update_kube
-         replace_shell
-         return;;
-         # exit;;
-      g) # generate kubeconfig
-         gen_kubeconfig
-         replace_shell
-         return;;
-         # exit;;
-      o) # check unmasked aws variables
-         print_unmasked_var
-         replace_shell
-         return;;
-         # exit;;
-      p) # change AWS_PROFILE
-         select_aws_profile
-         replace_shell
-         return;;
-         # exit;;
-      t) # configure tmp AWS_PROFILE
-         select_aws_creds
-         select_aws_region
-         config_tmp_profile
-         replace_shell
-         return;;
-         # exit;;
-      d) # delete AWS_PROFILE
-         select_aws_creds
-         select_aws_profile
-         delete_aws_profile
-         replace_shell
-         return;;
-         # exit;;
-     \?) # Invalid option
-         echo "Error: Invalid option"
-         echo "Use './script -h' for help"
-         replace_shell
-         return;;
-         # exit;;
-   esac
+# This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
+# `getopts` relies on the `OPTIND` variable (OPTIND=1 by default) and that variable works differently in bash and zsh.
+# While `getopts` can be fixed in bash by setting `OPTIND=1`, 
+# zsh also requires addition manipulations like a shell replacement with `exec zsh`.
+while [ "$#" -gt 0 ]
+do
+	case "$1" in
+	-h|--help)
+      # display Help
+		help
+		return 0
+		;;
+	-c|--clear)
+      # uset aws token variables
+      aws_unset
+      print_masked_var
+		return 0
+		;;
+   -u|--update)
+      # update kubeconfig file
+      select_aws_profile
+      select_aws_region
+      update_kube
+      return 0
+      ;;
+   -g|--generate)
+      # generate kubeconfig
+      gen_kubeconfig
+      return 0
+      ;;
+	-o|--output)
+      # check unmasked aws variables
+      print_unmasked_var
+      return 0
+      ;;
+   -p|--profile)
+      # change AWS_PROFILE
+      select_aws_profile
+      return 0
+      ;;
+   -t|--temporary)
+      # configure tmp AWS_PROFILE
+      select_aws_creds
+      select_aws_region
+      config_tmp_profile
+      return 0
+      ;;
+   -d|--delete)
+      # delete AWS_PROFILE
+      select_aws_creds
+      select_aws_profile
+      delete_aws_profile
+      return 0
+      ;;
+	--)
+		break
+		;;
+	-*)
+		echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
+		return 1
+		;;
+	*)	
+		echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
+		return 1
+   ;;
+	esac
+	shift
 done
 
 select_aws_profile
@@ -278,5 +273,3 @@ if [ -s $aws_token_file ]; then
 fi
 
 rm -rf $aws_token_file
-
-replace_shell
