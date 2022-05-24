@@ -1,8 +1,15 @@
 # The script for generating AWS tokens, working with AWS profiles, and updating a kubeconfig file
 
-Goals: at the time of writing, the current version of `aws-cli/2.7.2` does not have a convenient way to work with AWS profiles, specifically with temporary AWs profiles and tokens. This script aims to improve this experience.<br>
+**Goals**: at the time of writing, the current version of `aws-cli/2.7.2` does not have a convenient way to work with AWS profiles, specifically with temporary AWS profiles and tokens. This script aims to improve this experience.<br>
+**Related issues**: 
+https://github.com/aws/aws-cli/issues/6979
+https://github.com/aws/aws-cli/issues/6980
+https://github.com/aws/aws-cli/issues/3346
+**Docs**: 
+https://aws.amazon.com/premiumsupport/knowledge-center/authenticate-mfa-cli/
+https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html<br>
 
-Prerequisites: `aws-cli` v2, generated AWS profile with `aws configure`, `kubectl`<br>
+**Prerequisites**: `aws-cli` v2, generated AWS profile with `aws configure`, `kubectl`<br>
 
 This script should be sourced in order to get the variables working in the current shell.<br>
 Example: `source script.sh` or `. script.sh`<br>
