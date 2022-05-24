@@ -178,18 +178,18 @@ aws_vars_unset()
 # zsh also requires addition manipulations like a shell replacement with `exec zsh`.
 while [ "$#" -gt 0 ]
 do
-	case "$1" in
-	-h|--help)
+   case "$1" in
+   -h|--help)
       # display Help
-		help
-		return 0
-		;;
-	-c|--clear)
+      help
+      return 0
+      ;;
+   -c|--clear)
       # uset aws token variables
       aws_vars_unset
       print_masked_var
-		return 0
-		;;
+      return 0
+      ;;
    -u|--update)
       # update kubeconfig file
       select_aws_profile
@@ -202,7 +202,7 @@ do
       gen_kubeconfig
       return 0
       ;;
-	-o|--output)
+   -o|--output)
       # check unmasked aws variables
       print_unmasked_var
       return 0
@@ -226,19 +226,19 @@ do
       delete_aws_profile
       return 0
       ;;
-	--)
-		break
-		;;
-	-*)
-		echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
-		return 1
-		;;
-	*)	
-		echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
-		return 1
+   --)
+      break
+      ;;
+   -*)
+      echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
+      return 1
+      ;;
+   *)
+      echo "Invalid option '$1'. Use -h|--help to see the valid options" >&2
+      return 1
    ;;
-	esac
-	shift
+   esac
+   shift
 done
 
 select_aws_profile
