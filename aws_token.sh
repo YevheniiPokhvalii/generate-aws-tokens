@@ -118,15 +118,20 @@ delete_aws_profile()
    echo -n "Are you sure you want to delete this profile? (y/n)? "
    read answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
-      sed -i '$!{/^$/d}' "${AWS_CONFIG_FILE}"
-      sed -i '$!{/^$/d}' "${AWS_SHARED_CREDENTIALS_FILE}"
-      sed -i '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' "${AWS_CONFIG_FILE}"
+      tmp_aws_config=tmp_aws_conf_"${AWS_PROFILE}"
+      tmp_aws_creds=tmp_aws_creds_"${AWS_PROFILE}"
+
+      # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
+      mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
       if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
-         sed -i '/\['"${AWS_PROFILE}"'\]/{N;N;N;d;}' "${AWS_SHARED_CREDENTIALS_FILE}"
+         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;N;d;}' > "$tmp_aws_creds"
       else
-         sed -i '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' "${AWS_SHARED_CREDENTIALS_FILE}"
+         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_creds"
       fi
+      mv "$tmp_aws_creds" "${AWS_SHARED_CREDENTIALS_FILE}"
+
       unset AWS_PROFILE
       echo "AWS_PROFILE=$AWS_PROFILE"
    else
@@ -170,6 +175,40 @@ aws_vars_unset()
    unset AWS_SECRET_ACCESS_KEY
    unset AWS_SESSION_TOKEN
    unset AWS_PROFILE
+}
+
+generate_aws_mfa()
+{
+   echo "Enter MFA code: "
+   aws_mfa_account=$(aws sts get-caller-identity --profile "$AWS_PROFILE" --output=text --query "Arn" | sed 's/user/mfa/')
+   read aws_mfa_code
+
+   aws_token_file="session-token-$aws_mfa_code.json"
+
+   # The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
+   # Alternative: the session token can be saved in a separate [aws_mfa_code] AWS profile to use it across shells.
+   # aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" \
+   # --output=yaml --query "Credentials.{aws_access_key_id: AccessKeyId, aws_secret_access_key: SecretAccessKey, aws_session_token: SessionToken}"
+   aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" > $aws_token_file
+
+   if [ ! -z "${aws_mfa_code}" ]; then
+      export AWS_ACCESS_KEY_ID=$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')
+      export AWS_SECRET_ACCESS_KEY=$(grep -o '"SecretAccessKey": "[^"]*' $aws_token_file | grep -o '[^"]*$')
+      export AWS_SESSION_TOKEN=$(grep -o '"SessionToken": "[^"]*' $aws_token_file | grep -o '[^"]*$')
+   fi
+
+   echo "------------------"
+   echo "Exported variables:"
+   echo "------------------"
+
+   print_masked_var
+
+   if [ -s $aws_token_file ]; then
+      echo "------------------"
+      echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
+   fi
+
+   rm -rf $aws_token_file
 }
 
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
@@ -242,34 +281,4 @@ do
 done
 
 select_aws_profile
-
-echo "Enter MFA code: "
-aws_mfa_account=$(aws sts get-caller-identity --profile "$AWS_PROFILE" --output=text --query "Arn" | sed 's/user/mfa/')
-read aws_mfa_code
-
-aws_token_file="session-token-$aws_mfa_code.json"
-
-# The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
-# Alternative: the session token can be saved in a separate [aws_mfa_code] AWS profile to use it across shells.
-# aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" \
-# --output=yaml --query "Credentials.{aws_access_key_id: AccessKeyId, aws_secret_access_key: SecretAccessKey, aws_session_token: SessionToken}"
-aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" > $aws_token_file
-
-if [ ! -z "${aws_mfa_code}" ]; then
-   export AWS_ACCESS_KEY_ID=$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')
-   export AWS_SECRET_ACCESS_KEY=$(grep -o '"SecretAccessKey": "[^"]*' $aws_token_file | grep -o '[^"]*$')
-   export AWS_SESSION_TOKEN=$(grep -o '"SessionToken": "[^"]*' $aws_token_file | grep -o '[^"]*$')
-fi
-
-echo "------------------"
-echo "Exported variables:"
-echo "------------------"
-
-print_masked_var
-
-if [ -s $aws_token_file ]; then
-   echo "------------------"
-   echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
-fi
-
-rm -rf $aws_token_file
+generate_aws_mfa
