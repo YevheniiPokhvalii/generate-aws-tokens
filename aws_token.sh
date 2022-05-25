@@ -214,7 +214,7 @@ generate_aws_mfa()
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
 # `getopts` relies on the `OPTIND` variable (OPTIND=1 by default) and that variable works differently in bash and zsh.
 # While `getopts` can be fixed in bash by setting `OPTIND=1`, 
-# zsh also requires addition manipulations like a shell replacement with `exec zsh`.
+# zsh also requires additional manipulations like a shell replacement with `exec zsh`.
 while [ "$#" -gt 0 ]
 do
    case "$1" in
