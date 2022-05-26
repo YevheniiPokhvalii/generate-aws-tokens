@@ -30,7 +30,8 @@ select_aws_creds()
    fi
 }
 
-select_aws_profile(){
+select_aws_profile()
+{
    # call a function with credentials paths
    select_aws_creds
 
