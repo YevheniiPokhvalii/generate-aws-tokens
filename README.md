@@ -25,4 +25,4 @@ Flag `-d` removes an AWS profile from the configuration files indicated in `AWS_
 
 > If you receive `(AccessDeniedException)` error during token generation for an empty profile, try to regenerate tokens or unset the token variables before generating new ones.<br>
 If you receive `(AccessDeniedException)` error while running a script with the flag `-g`, don't forget to generate tokens first - run the script without flags.<br>
-Do not enter special characters like square brackets into the input prompt.
+Do not enter special characters like square brackets into the input prompt. If an incorrect profile name is indicated by mistake, just re-run the script and enter the correct profile name, or unset the profile variables with the `-c` flag.
