@@ -11,7 +11,7 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html<br>
 
 **Prerequisites**: `aws-cli` v2, generated AWS profile with `aws configure`, `kubectl`<br>
 
-This script should be sourced in order to get the variables working in the current shell.<br>
+> This script must be sourced in order to get the variables working in the current shell.<br>
 Example: `source script.sh` or `. script.sh`<br>
 
 Without flags, this script generates AWS tokens for the chosen AWS profile.<br>
