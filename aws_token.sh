@@ -41,12 +41,14 @@ select_aws_profile()
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
-   # aws configure list-profiles | awk '!/^'"$AWS_PROFILE"'$/' | grep ".*" --color=always || true
-   # `grep -xv "$AWS_PROFILE"` was replaced by `awk '!/^'"$AWS_PROFILE"'$/'` for better compatibility
-   grep -o '\[.*]' "$AWS_CONFIG_FILE" | sed 's/[][]//g' | sed 's/profile //g' | awk '!/^'"$AWS_PROFILE"'$/' | grep ".*" --color=always || true
+   # aws configure list-profiles | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
+   grep -o '\[.*]' "$AWS_CONFIG_FILE" | sed 's/[][]//g' | sed 's/profile //g' | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
    # this `read` is POSIX compatible
    printf 'Skip to use [\e[01;31m'"$AWS_PROFILE"'\e[0m]: '
    read -r active_aws_profile
+   case "${active_aws_profile}" in
+      *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
+   esac
    if [ ! -z "${active_aws_profile}" ]; then
       export AWS_PROFILE=${active_aws_profile}
    fi
@@ -101,7 +103,7 @@ config_tmp_profile()
 {
    if [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
-      printf "\n[${temp_profile_name}]\nregion = ${AWS_REGION}\noutput = json\n" >> "$AWS_CONFIG_FILE"
+      printf "\n[profile ${temp_profile_name}]\nregion = ${AWS_REGION}\noutput = json\n" >> "$AWS_CONFIG_FILE"
       printf "\n[${temp_profile_name}]\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       printf "aws_access_key_id = $AWS_ACCESS_KEY_ID\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       printf "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
@@ -123,7 +125,7 @@ delete_aws_profile()
       tmp_aws_creds=tmp_aws_creds_"${AWS_PROFILE}"
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
-      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\[profile '"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
       if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
