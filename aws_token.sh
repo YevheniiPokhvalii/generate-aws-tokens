@@ -125,7 +125,7 @@ delete_aws_profile()
       tmp_aws_creds=tmp_aws_creds_"${AWS_PROFILE}"
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
-      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\[profile '"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' | sed '/\[profile '"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
       if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
