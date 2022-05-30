@@ -192,7 +192,6 @@ generate_aws_mfa()
    fi
 
    read aws_mfa_code
-
    aws_token_file="session-token-$aws_mfa_code.json"
 
    # The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
