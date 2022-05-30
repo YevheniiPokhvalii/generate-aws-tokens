@@ -184,16 +184,20 @@ aws_vars_unset()
 generate_aws_mfa()
 {
    echo "Enter MFA code: "
-   aws_mfa_account=$(aws sts get-caller-identity --profile "$AWS_PROFILE" --output=text --query "Arn" | sed 's/user/mfa/')
+   aws_mfa_device_sn=$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query MFADevices[0].SerialNumber)
    read aws_mfa_code
+
+   if [ ! -n "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
+      echo "WARNING: There is no MFA device assigned to this profile"
+   fi
 
    aws_token_file="session-token-$aws_mfa_code.json"
 
    # The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
    # Alternative: the session token can be saved in a separate [aws_mfa_code] AWS profile to use it across shells.
-   # aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" \
+   # aws sts get-session-token --serial-number $aws_mfa_device_sn --token-code $aws_mfa_code --profile "$AWS_PROFILE" \
    # --output=yaml --query "Credentials.{aws_access_key_id: AccessKeyId, aws_secret_access_key: SecretAccessKey, aws_session_token: SessionToken}"
-   aws sts get-session-token --serial-number $aws_mfa_account --token-code $aws_mfa_code --profile "$AWS_PROFILE" > $aws_token_file
+   aws sts get-session-token --serial-number $aws_mfa_device_sn --token-code $aws_mfa_code --profile "$AWS_PROFILE" > $aws_token_file
 
    if [ ! -z "${aws_mfa_code}" ]; then
       export AWS_ACCESS_KEY_ID=$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')
