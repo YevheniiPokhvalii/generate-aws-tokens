@@ -217,7 +217,7 @@ generate_aws_mfa()
       echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
    fi
 
-   rm -rf $aws_token_file
+   rm $aws_token_file
 }
 
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
