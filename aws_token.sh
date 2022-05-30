@@ -42,7 +42,8 @@ select_aws_profile()
 
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
-   grep -o '\[.*]' "$AWS_CONFIG_FILE" | sed 's/[][]//g' | sed 's/profile //g' | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
+   grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
+   | sed -e 's/profile //g' -e 's/[][]//g' | awk '!x[$0]++' | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
    # this `read` is POSIX compatible
    printf 'Skip to use [\e[01;31m'"$AWS_PROFILE"'\e[0m]: '
    read -r active_aws_profile
@@ -125,7 +126,7 @@ delete_aws_profile()
       tmp_aws_creds=tmp_aws_creds_"${AWS_PROFILE}"
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
-      awk 'NF' "${AWS_CONFIG_FILE}" | sed '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' | sed '/\[profile '"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/\['"${AWS_PROFILE}"'\]/{N;N;d;}' -e '/\[profile '"${AWS_PROFILE}"'\]/{N;N;d;}' > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
       if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
