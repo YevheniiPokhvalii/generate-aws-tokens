@@ -185,11 +185,13 @@ generate_aws_mfa()
 {
    echo "Enter MFA code: "
    aws_mfa_device_sn=$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query MFADevices[0].SerialNumber)
-   read aws_mfa_code
 
    if [ ! -n "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
       echo "WARNING: There is no MFA device assigned to this profile"
+      return 1
    fi
+
+   read aws_mfa_code
 
    aws_token_file="session-token-$aws_mfa_code.json"
 
