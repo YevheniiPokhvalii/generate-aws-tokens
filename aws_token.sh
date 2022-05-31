@@ -102,7 +102,9 @@ gen_kubeconfig()
 
 config_tmp_profile()
 {
-   if [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+   if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
+      echo "WARNING: Do not run the script for a temporary profile"
+   elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
       printf "\n[profile ${temp_profile_name}]\nregion = ${AWS_REGION}\noutput = json\n" >> "$AWS_CONFIG_FILE"
       printf "\n[${temp_profile_name}]\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
@@ -110,10 +112,15 @@ config_tmp_profile()
       printf "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       printf "aws_session_token = $AWS_SESSION_TOKEN\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       export AWS_PROFILE="$temp_profile_name"
+      echo "------------------"
       echo "Temporary MFA profile has been configured: "
       printenv | grep AWS_PROFILE
    else
-      echo "The session token has not been generated."
+      select_aws_profile
+      generate_aws_mfa
+      if [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+         config_tmp_profile
+      fi
    fi
 }
 
@@ -184,7 +191,7 @@ aws_vars_unset()
 generate_aws_mfa()
 {
    echo "Enter MFA code: "
-   aws_mfa_device_sn=$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query MFADevices[0].SerialNumber)
+   aws_mfa_device_sn=$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query "MFADevices[0].SerialNumber")
 
    if [ ! -n "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
       echo "WARNING: There is no MFA device assigned to this profile"
