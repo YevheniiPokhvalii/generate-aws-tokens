@@ -103,6 +103,7 @@ gen_kubeconfig()
 config_tmp_profile()
 {
    if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
+      printenv | grep AWS_PROFILE
       echo "WARNING: Do not run the script for a temporary profile"
    elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
