@@ -35,17 +35,20 @@ select_aws_profile()
    # call a function with credentials paths
    select_aws_creds
 
-   # an additional grep is added to colorize the output
+   # An additional grep is added to colorize the output. This complex `echo` is resistant to special characters.
    echo "Choose AWS profile: "
-   echo "[$AWS_PROFILE] <-- Active profile (empty by default)" | grep "$AWS_PROFILE" --color=always
+   echo "[$(printenv AWS_PROFILE | grep ".*" --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
    | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
-   # this `read` is POSIX compatible
-   printf 'Skip to use [\e[01;31m'"$AWS_PROFILE"'\e[0m]: '
+
+   # This `read` and `printf` are POSIX compatible. `echo -n` is not POSIX compatible unlike `printf`.
+   # However, `echo -n` is more resistant to special characters.
+   # printf 'Skip to use ['"$(printenv AWS_PROFILE | grep ".*" --color=always)"']: '
+   echo -n "Skip to use [$(printenv AWS_PROFILE | grep ".*" --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
@@ -70,13 +73,14 @@ select_aws_region()
       AWS_REGION="eu-central-1"
    fi
 
-   printf 'Enter AWS region. Skip to use [\e[01;31m'"$AWS_REGION"'\e[0m]: '
+   # printf 'Enter AWS region. Skip to use [\e[01;31m'"$AWS_REGION"'\e[0m]: '
+   echo -n "Enter AWS region. Skip to use [$(echo $AWS_REGION | grep ".*" --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
       AWS_REGION=${read_region}
    fi
 
-   echo "$AWS_REGION" | grep "$AWS_REGION" --color=always
+   echo "$AWS_REGION" | grep ".*" --color=always
 }
 
 update_kube()
@@ -87,7 +91,7 @@ update_kube()
 
    printf 'Enter cluster name: '
    read -r cluster_name
-   echo "$cluster_name" | grep "$cluster_name" --color=always
+   echo "$cluster_name" | grep ".*" --color=always
 
    # `aws eks` does not generate a kubeconfig with the --profile flag after MFA 
    # so the aws_profile function is used during the flag calling.
