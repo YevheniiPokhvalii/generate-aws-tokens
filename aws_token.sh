@@ -149,6 +149,9 @@ delete_aws_profile()
       mv "$tmp_aws_creds" "${AWS_SHARED_CREDENTIALS_FILE}"
 
       unset AWS_PROFILE
+      unset AWS_ACCESS_KEY_ID
+      unset AWS_SECRET_ACCESS_KEY
+      unset AWS_SESSION_TOKEN
       echo "AWS_PROFILE=$AWS_PROFILE"
    else
       echo "Skipped..."
