@@ -134,18 +134,19 @@ delete_aws_profile()
    echo -n "Are you sure you want to delete this profile? (y/n)? "
    read answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
-      tmp_aws_config=tmp_aws_conf_"${AWS_PROFILE}"
-      tmp_aws_creds=tmp_aws_creds_"${AWS_PROFILE}"
+      tmp_aws_config=tmp_aws_conf
+      tmp_aws_creds=tmp_aws_creds
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
-      # `printenv AWS_PROFILE` is resistant to special characters
-      awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/\['"$(printenv AWS_PROFILE)"'\]/{N;N;d;}' -e '/\[profile '"$(printenv AWS_PROFILE)"'\]/{N;N;d;}' > "$tmp_aws_config"
+      # escape special characters
+      aws_profile_esc=$(echo $AWS_PROFILE | sed -e 's`[][\\/.*^$]`\\&`g')
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/\['"$aws_profile_esc"'\]/{N;N;d;}' -e '/\[profile '"$aws_profile_esc"'\]/{N;N;d;}' > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
       if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
-         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$(printenv AWS_PROFILE)"'\]/{N;N;N;d;}' > "$tmp_aws_creds"
+         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$aws_profile_esc"'\]/{N;N;N;d;}' > "$tmp_aws_creds"
       else
-         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$(printenv AWS_PROFILE)"'\]/{N;N;d;}' > "$tmp_aws_creds"
+         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$aws_profile_esc"'\]/{N;N;d;}' > "$tmp_aws_creds"
       fi
       mv "$tmp_aws_creds" "${AWS_SHARED_CREDENTIALS_FILE}"
 
