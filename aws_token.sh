@@ -135,20 +135,17 @@ delete_aws_profile()
    read answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
       tmp_aws_config=tmp_aws_conf
-      tmp_aws_creds=tmp_aws_creds
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
       # escape special characters
       aws_profile_esc=$(echo $AWS_PROFILE | sed -e 's`[][\\/.*^$]`\\&`g')
-      awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/\['"$aws_profile_esc"'\]/{N;N;d;}' -e '/\[profile '"$aws_profile_esc"'\]/{N;N;d;}' > "$tmp_aws_config"
+
+      awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/^\['"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\['"$aws_profile_esc"'\]$/{d;}' \
+      | sed -e '/^\[profile '"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\[profile '"$aws_profile_esc"'\]$/{d;}'  > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
 
-      if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
-         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$aws_profile_esc"'\]/{N;N;N;d;}' > "$tmp_aws_creds"
-      else
-         awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed '/\['"$aws_profile_esc"'\]/{N;N;d;}' > "$tmp_aws_creds"
-      fi
-      mv "$tmp_aws_creds" "${AWS_SHARED_CREDENTIALS_FILE}"
+      awk 'NF' "${AWS_SHARED_CREDENTIALS_FILE}" | sed -e '/^\['"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\['"$aws_profile_esc"'\]$/{d;}' > "$tmp_aws_config"
+      mv "$tmp_aws_config" "${AWS_SHARED_CREDENTIALS_FILE}"
 
       unset AWS_PROFILE
       unset AWS_ACCESS_KEY_ID
