@@ -68,7 +68,8 @@ select_aws_profile()
 
 select_aws_region()
 {
-   # AWS_REGION=$(aws configure get region --profile) was not used because it does not work with old profiles without the 'profile' prefix
+   # AWS_REGION=$(aws configure get region --profile) was not used because it does not work with old profiles 
+   # that did not have the 'profile' prefix in the AWS config file.
    if [ ! -n "${AWS_REGION}" ]; then
       AWS_REGION="eu-central-1"
    fi
