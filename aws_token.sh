@@ -68,27 +68,30 @@ select_aws_profile()
 
 select_aws_region()
 {
-   # AWS_REGION=$(aws configure get region --profile) was not used because it does not work with old profiles 
-   # that did not have the 'profile' prefix in the AWS config file.
-   if [ ! -n "${AWS_REGION}" ]; then
-      AWS_REGION="eu-central-1"
+   # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
+   aws_profile_region=$(aws configure get region)
+
+   if [ ! -n "${aws_profile_region}" ] && [ ! -z "${AWS_DEFAULT_REGION}" ]; then
+      aws_profile_region="$AWS_DEFAULT_REGION"
+   elif [ ! -n "${aws_profile_region}" ] && [ ! -n "${AWS_DEFAULT_REGION}" ]; then
+      aws_profile_region="eu-central-1"
    fi
 
-   # printf 'Enter AWS region. Skip to use [\e[01;31m'"$AWS_REGION"'\e[0m]: '
-   echo -n "Enter AWS region. Skip to use [$(echo $AWS_REGION | grep ".*" --color=always)]: "
+   # printf 'Enter AWS region. Skip to use [\e[01;31m'"$aws_profile_region"'\e[0m]: '
+   echo -n "Enter AWS region. Skip to use [$(echo $aws_profile_region | grep ".*" --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
-      AWS_REGION=${read_region}
+      aws_profile_region=${read_region}
    fi
 
-   echo "$AWS_REGION" | grep ".*" --color=always
+   echo "$aws_profile_region" | grep ".*" --color=always
 }
 
 update_kube()
 {
    # `aws eks list-clusters --profile` does not work after MFA with temporary credentials
    echo "Choose cluster: "
-   aws eks list-clusters --region "$AWS_REGION" --output=yaml --query "clusters" | sed 's/- //' | grep ".*" --color=always
+   aws eks list-clusters --region "$aws_profile_region" --output=yaml --query "clusters" | sed 's/- //' | grep ".*" --color=always
 
    printf 'Enter cluster name: '
    read -r cluster_name
@@ -97,7 +100,7 @@ update_kube()
    # `aws eks` does not generate a kubeconfig with the --profile flag after MFA 
    # so the aws_profile function is used during the flag calling.
    # It adds env AWS_PROFILE in the kubeconfig after its generation.
-   aws eks --region "$AWS_REGION" update-kubeconfig --name $cluster_name
+   aws eks --region "$aws_profile_region" update-kubeconfig --name $cluster_name
 }
 
 gen_kubeconfig()
@@ -112,7 +115,7 @@ config_tmp_profile()
       echo "WARNING: Do not run the script for a temporary profile"
    elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
-      printf "\n[profile ${temp_profile_name}]\nregion = ${AWS_REGION}\noutput = json\n" >> "$AWS_CONFIG_FILE"
+      printf "\n[profile ${temp_profile_name}]\nregion = ${aws_profile_region}\noutput = json\n" >> "$AWS_CONFIG_FILE"
       printf "\n[${temp_profile_name}]\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       printf "aws_access_key_id = $AWS_ACCESS_KEY_ID\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
       printf "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
