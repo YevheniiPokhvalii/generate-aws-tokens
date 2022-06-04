@@ -66,6 +66,7 @@ select_aws_profile()
    printenv | grep AWS_PROFILE || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
+# This function should be called after choosing an AWS profile
 select_aws_region()
 {
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
@@ -114,6 +115,9 @@ config_tmp_profile()
       printenv | grep AWS_PROFILE
       echo "WARNING: Do not run the script for a temporary profile"
    elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+      # Call a function to choose a region. It is implied here that an AWS profile is already selected.
+      select_aws_region
+
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
       printf "\n[profile ${temp_profile_name}]\nregion = ${aws_profile_region}\noutput = json\n" >> "$AWS_CONFIG_FILE"
       printf "\n[${temp_profile_name}]\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
@@ -281,13 +285,11 @@ do
    -t|--temporary)
       # configure tmp AWS_PROFILE
       select_aws_creds
-      select_aws_region
       config_tmp_profile
       return 0
       ;;
    -d|--delete)
       # delete AWS_PROFILE
-      select_aws_creds
       select_aws_profile
       delete_aws_profile
       return 0
