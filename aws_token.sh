@@ -115,15 +115,20 @@ config_tmp_profile()
       printenv | grep AWS_PROFILE
       echo "WARNING: Do not run the script for a temporary profile"
    elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
-      # Call a function to choose a region. It is implied here that an AWS profile is already selected.
+      # Calling the function to choose a region. It is implied here that an AWS profile is already selected.
       select_aws_region
 
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
-      printf "\n[profile ${temp_profile_name}]\nregion = ${aws_profile_region}\noutput = json\n" >> "$AWS_CONFIG_FILE"
-      printf "\n[${temp_profile_name}]\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf "aws_access_key_id = $AWS_ACCESS_KEY_ID\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf "aws_session_token = $AWS_SESSION_TOKEN\n" >> "$AWS_SHARED_CREDENTIALS_FILE"
+
+      printf '\n%s\n' "[profile ${temp_profile_name}]" >> "$AWS_CONFIG_FILE"
+      printf '%s\n' "region = ${aws_profile_region}" >> "$AWS_CONFIG_FILE"
+      printf '%s\n' "output = json" >> "$AWS_CONFIG_FILE"
+      
+      printf '\n%s\n' "[${temp_profile_name}]" >> "$AWS_SHARED_CREDENTIALS_FILE"
+      printf '%s\n' "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> "$AWS_SHARED_CREDENTIALS_FILE"
+      printf '%s\n' "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> "$AWS_SHARED_CREDENTIALS_FILE"
+      printf '%s\n' "aws_session_token = $AWS_SESSION_TOKEN" >> "$AWS_SHARED_CREDENTIALS_FILE"
+
       export AWS_PROFILE="$temp_profile_name"
       echo "------------------"
       echo "Temporary MFA profile has been configured: "
