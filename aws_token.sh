@@ -55,6 +55,7 @@ select_aws_profile()
    esac
    if [ ! -z "${active_aws_profile}" ]; then
       export AWS_PROFILE="${active_aws_profile}"
+      aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
    fi
 
    if [ "${aws_profile_before}" != "${AWS_PROFILE}" ]; then
@@ -71,8 +72,7 @@ select_aws_region()
 {
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # The solution for profiles with the old naming convention.
-   # escape special characters
-   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
+   # `aws_profile_esc` escape special characters (taken from the AWS profile function).
    aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep 'region' | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
@@ -155,8 +155,7 @@ delete_aws_profile()
       tmp_aws_config='tmp_aws_conf'
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead.
-      # escape special characters
-      aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
+      # `aws_profile_esc` escape special characters (taken from the AWS profile function).
       awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/^\['"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\['"$aws_profile_esc"'\]$/{d;}' \
       | sed -e '/^\[profile '"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\[profile '"$aws_profile_esc"'\]$/{d;}'  > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
