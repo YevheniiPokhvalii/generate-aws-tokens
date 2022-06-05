@@ -35,22 +35,20 @@ select_aws_profile()
    # call a function with credentials paths
    select_aws_creds
 
-   # An additional grep is added to colorize the output. This complex `echo` is resistant to special characters.
+   # An additional grep is added to colorize the output.
    echo "Choose AWS profile: "
    # escape special characters
    aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
-   echo "[$(printf '%s' "$aws_profile_esc" | grep ".*" --color=always)] <-- Active profile (empty by default)"
+   printf '%s\n' "[$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
-   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^"${AWS_PROFILE}"$ | grep ".*" --color=always || true
+   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^"${aws_profile_esc}"$ | grep ".*" --color=always || true
 
-   # This `read` and `printf` are POSIX compatible. `echo -n` is not POSIX compatible unlike `printf`.
-   # However, `echo -n` allows to use piping with a variable interpolation in contrast to `printf '%s'`.
-   # printf 'Skip to use ['"$(printenv AWS_PROFILE | grep ".*" --color=always)"']: '
-   echo -n "Skip to use [$(printf '%s' "$aws_profile_esc" | grep ".*" --color=always)]: "
+   # This `read` and `printf` are POSIX compatible.
+   printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
@@ -84,8 +82,7 @@ select_aws_region()
       aws_profile_region='eu-central-1'
    fi
 
-   # printf 'Enter AWS region. Skip to use [\e[01;31m'"$aws_profile_region"'\e[0m]: '
-   echo -n "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep ".*" --color=always)]: "
+   printf '%s' "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep ".*" --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
       aws_profile_region="${read_region}"
