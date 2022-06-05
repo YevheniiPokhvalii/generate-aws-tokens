@@ -70,7 +70,11 @@ select_aws_profile()
 select_aws_region()
 {
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
-   aws_profile_region="$(aws configure get region)"
+   # The solution for profiles with the old naming convention.
+   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
+   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep 'region' | awk '{ print $3 }')"
+
+   aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
    if [ ! -n "${aws_profile_region}" ] && [ ! -z "${AWS_DEFAULT_REGION}" ]; then
       aws_profile_region="$AWS_DEFAULT_REGION"
