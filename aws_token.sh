@@ -37,7 +37,7 @@ select_aws_profile()
 
    # An additional grep is added to colorize the output. This complex `echo` is resistant to special characters.
    echo "Choose AWS profile: "
-
+   # escape special characters
    aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
    echo "[$(printf '%s' "$aws_profile_esc" | grep ".*" --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
