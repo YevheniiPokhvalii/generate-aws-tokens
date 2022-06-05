@@ -37,24 +37,24 @@ select_aws_profile()
 
    # An additional grep is added to colorize the output. This complex `echo` is resistant to special characters.
    echo "Choose AWS profile: "
-   echo "[$(printenv AWS_PROFILE | grep ".*" --color=always)] <-- Active profile (empty by default)"
+   echo "[$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
-   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^${AWS_PROFILE}$ | grep ".*" --color=always || true
+   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^"${AWS_PROFILE}"$ | grep ".*" --color=always || true
 
    # This `read` and `printf` are POSIX compatible. `echo -n` is not POSIX compatible unlike `printf`.
-   # However, `echo -n` is more resistant to special characters.
+   # However, `echo -n` allows to use piping with a variable interpolation in contrast to `printf '%s'`.
    # printf 'Skip to use ['"$(printenv AWS_PROFILE | grep ".*" --color=always)"']: '
-   echo -n "Skip to use [$(printenv AWS_PROFILE | grep ".*" --color=always)]: "
+   echo -n "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
    esac
    if [ ! -z "${active_aws_profile}" ]; then
-      export AWS_PROFILE=${active_aws_profile}
+      export AWS_PROFILE="${active_aws_profile}"
    fi
 
    if [ "${aws_profile_before}" != "${AWS_PROFILE}" ]; then
@@ -70,22 +70,22 @@ select_aws_profile()
 select_aws_region()
 {
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
-   aws_profile_region=$(aws configure get region)
+   aws_profile_region="$(aws configure get region)"
 
    if [ ! -n "${aws_profile_region}" ] && [ ! -z "${AWS_DEFAULT_REGION}" ]; then
       aws_profile_region="$AWS_DEFAULT_REGION"
    elif [ ! -n "${aws_profile_region}" ] && [ ! -n "${AWS_DEFAULT_REGION}" ]; then
-      aws_profile_region="eu-central-1"
+      aws_profile_region='eu-central-1'
    fi
 
    # printf 'Enter AWS region. Skip to use [\e[01;31m'"$aws_profile_region"'\e[0m]: '
-   echo -n "Enter AWS region. Skip to use [$(echo $aws_profile_region | grep ".*" --color=always)]: "
+   echo -n "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep ".*" --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
-      aws_profile_region=${read_region}
+      aws_profile_region="${read_region}"
    fi
 
-   echo "$aws_profile_region" | grep ".*" --color=always
+   printf '%s' "$aws_profile_region" | grep ".*" --color=always
 }
 
 update_kube()
@@ -96,12 +96,12 @@ update_kube()
 
    printf 'Enter cluster name: '
    read -r cluster_name
-   echo "$cluster_name" | grep ".*" --color=always
+   printf '%s' "$cluster_name" | grep ".*" --color=always
 
    # `aws eks` does not generate a kubeconfig with the --profile flag after MFA 
    # so the aws_profile function is used during the flag calling.
    # It adds env AWS_PROFILE in the kubeconfig after its generation.
-   aws eks --region "$aws_profile_region" update-kubeconfig --name $cluster_name
+   aws eks --region "$aws_profile_region" update-kubeconfig --name "$cluster_name"
 }
 
 gen_kubeconfig()
@@ -147,11 +147,11 @@ delete_aws_profile()
    echo -n "Are you sure you want to delete this profile? (y/n)? "
    read answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
-      tmp_aws_config=tmp_aws_conf
+      tmp_aws_config='tmp_aws_conf'
 
       # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
       # escape special characters
-      aws_profile_esc=$(echo $AWS_PROFILE | sed -e 's`[][\\/.*^$]`\\&`g')
+      aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
 
       awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/^\['"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\['"$aws_profile_esc"'\]$/{d;}' \
       | sed -e '/^\[profile '"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\[profile '"$aws_profile_esc"'\]$/{d;}'  > "$tmp_aws_config"
@@ -211,7 +211,7 @@ aws_vars_unset()
 generate_aws_mfa()
 {
    echo "Enter MFA code: "
-   aws_mfa_device_sn=$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query "MFADevices[0].SerialNumber")
+   aws_mfa_device_sn="$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query "MFADevices[0].SerialNumber")"
 
    if [ ! -n "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
       echo "WARNING: There is no MFA device assigned to this profile"
@@ -225,12 +225,12 @@ generate_aws_mfa()
    # Alternative: the session token can be saved in a separate [aws_mfa_code] AWS profile to use it across shells.
    # aws sts get-session-token --serial-number $aws_mfa_device_sn --token-code $aws_mfa_code --profile "$AWS_PROFILE" \
    # --output=yaml --query "Credentials.{aws_access_key_id: AccessKeyId, aws_secret_access_key: SecretAccessKey, aws_session_token: SessionToken}"
-   aws sts get-session-token --serial-number $aws_mfa_device_sn --token-code $aws_mfa_code --profile "$AWS_PROFILE" > $aws_token_file
+   aws sts get-session-token --serial-number "$aws_mfa_device_sn" --token-code "$aws_mfa_code" --profile "$AWS_PROFILE" > "$aws_token_file"
 
    if [ ! -z "${aws_mfa_code}" ]; then
-      export AWS_ACCESS_KEY_ID=$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')
-      export AWS_SECRET_ACCESS_KEY=$(grep -o '"SecretAccessKey": "[^"]*' $aws_token_file | grep -o '[^"]*$')
-      export AWS_SESSION_TOKEN=$(grep -o '"SessionToken": "[^"]*' $aws_token_file | grep -o '[^"]*$')
+      export AWS_ACCESS_KEY_ID="$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
+      export AWS_SECRET_ACCESS_KEY="$(grep -o '"SecretAccessKey": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
+      export AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
    fi
 
    echo "------------------"
@@ -239,12 +239,12 @@ generate_aws_mfa()
 
    print_masked_var
 
-   if [ -s $aws_token_file ]; then
+   if [ -s "$aws_token_file" ]; then
       echo "------------------"
       echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
    fi
 
-   rm $aws_token_file
+   rm "$aws_token_file"
 }
 
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
