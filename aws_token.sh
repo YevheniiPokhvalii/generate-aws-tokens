@@ -37,7 +37,9 @@ select_aws_profile()
 
    # An additional grep is added to colorize the output. This complex `echo` is resistant to special characters.
    echo "Choose AWS profile: "
-   echo "[$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)] <-- Active profile (empty by default)"
+
+   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
+   echo "[$(printf '%s' "$aws_profile_esc" | grep ".*" --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
@@ -48,7 +50,7 @@ select_aws_profile()
    # This `read` and `printf` are POSIX compatible. `echo -n` is not POSIX compatible unlike `printf`.
    # However, `echo -n` allows to use piping with a variable interpolation in contrast to `printf '%s'`.
    # printf 'Skip to use ['"$(printenv AWS_PROFILE | grep ".*" --color=always)"']: '
-   echo -n "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)]: "
+   echo -n "Skip to use [$(printf '%s' "$aws_profile_esc" | grep ".*" --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
@@ -71,7 +73,7 @@ select_aws_region()
 {
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # The solution for profiles with the old naming convention.
-   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
+   # `aws_profile_esc` escapes special characters in a variable (it is present in the profile function).
    aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep 'region' | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
@@ -146,6 +148,7 @@ config_tmp_profile()
    fi
 }
 
+# This function should be called after choosing an AWS profile
 delete_aws_profile()
 {
    echo -n "Are you sure you want to delete this profile? (y/n)? "
@@ -153,10 +156,8 @@ delete_aws_profile()
    if [ "$answer" != "${answer#[Yy]}" ]; then
       tmp_aws_config='tmp_aws_conf'
 
-      # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead
-      # escape special characters
-      aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
-
+      # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead.
+      # `aws_profile_esc` escapes special characters in a variable (it is present in the profile function).
       awk 'NF' "${AWS_CONFIG_FILE}" | sed -e '/^\['"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\['"$aws_profile_esc"'\]$/{d;}' \
       | sed -e '/^\[profile '"$aws_profile_esc"'\]$/,/^\[/{//!d;}' -e '/^\[profile '"$aws_profile_esc"'\]$/{d;}'  > "$tmp_aws_config"
       mv "$tmp_aws_config" "${AWS_CONFIG_FILE}"
