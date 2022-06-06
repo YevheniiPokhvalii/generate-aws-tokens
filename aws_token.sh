@@ -43,9 +43,9 @@ select_aws_profile()
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
-   # aws configure list-profiles | grep -v ^${aws_profile_esc}$ | grep ".*" --color=always || true
+   # aws configure list-profiles | grep -v "^${aws_profile_esc}$" | grep ".*" --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
-   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v ^"${aws_profile_esc}"$ | grep ".*" --color=always || true
+   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep ".*" --color=always || true
 
    # This `read` and `printf` are POSIX compatible.
    printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)]: "
@@ -73,7 +73,7 @@ select_aws_region()
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # `aws_profile_esc` escape special characters (taken from the AWS profile function).
    # The solution for profiles with the old naming convention:
-   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep 'region' | awk '{ print $3 }')"
+   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep '^region' | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
