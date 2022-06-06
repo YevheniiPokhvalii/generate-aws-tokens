@@ -39,16 +39,16 @@ select_aws_profile()
    echo "Choose AWS profile: "
    # escape special characters
    aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
-   printf '%s\n' "[$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)] <-- Active profile (empty by default)"
+   printf '%s\n' "[$(printf '%s' "$AWS_PROFILE" | grep '.*' --color=always)] <-- Active profile (empty by default)"
    aws_profile_before="$AWS_PROFILE"
 
    # `aws configure list-profiles` is not used because it is slow
-   # aws configure list-profiles | grep -v "^${aws_profile_esc}$" | grep ".*" --color=always || true
+   # aws configure list-profiles | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
-   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep ".*" --color=always || true
+   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
 
    # This `read` and `printf` are POSIX compatible.
-   printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep ".*" --color=always)]: "
+   printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep '.*' --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
@@ -73,7 +73,7 @@ select_aws_region()
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # `aws_profile_esc` escape special characters (taken from the AWS profile function).
    # The solution for profiles with the old naming convention:
-   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep "^region" | awk '{ print $3 }')"
+   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep '^region' | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
@@ -83,24 +83,24 @@ select_aws_region()
       aws_profile_region='eu-central-1'
    fi
 
-   printf '%s' "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep ".*" --color=always)]: "
+   printf '%s' "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep '.*' --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
       aws_profile_region="${read_region}"
    fi
 
-   printf '%s' "$aws_profile_region" | grep ".*" --color=always
+   printf '%s' "$aws_profile_region" | grep '.*' --color=always
 }
 
 update_kube()
 {
    # `aws eks list-clusters --profile` does not work after MFA with temporary credentials
    echo "Choose cluster: "
-   aws eks list-clusters --region "$aws_profile_region" --output=yaml --query "clusters" | sed 's/- //' | grep ".*" --color=always
+   aws eks list-clusters --region "$aws_profile_region" --output=yaml --query "clusters" | sed 's/- //' | grep '.*' --color=always
 
    printf 'Enter cluster name: '
    read -r cluster_name
-   printf '%s' "$cluster_name" | grep ".*" --color=always
+   printf '%s' "$cluster_name" | grep '.*' --color=always
 
    # `aws eks` does not generate a kubeconfig with the --profile flag after MFA 
    # so the aws_profile function is used during the flag calling.
