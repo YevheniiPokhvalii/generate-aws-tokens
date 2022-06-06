@@ -32,22 +32,24 @@ select_aws_creds()
 
 select_aws_profile()
 {
-   # call a function with credentials paths
+   # call the function with credentials paths
    select_aws_creds
+
+   # The initial profile value
+   aws_profile_before="$AWS_PROFILE"
+
+   # escape special characters
+   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
 
    # An additional grep is added to colorize the output.
    echo "Choose AWS profile: "
-   # escape special characters
-   aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
    printf '%s\n' "[$(printf '%s' "$AWS_PROFILE" | grep '.*' --color=always)] <-- Active profile (empty by default)"
-   aws_profile_before="$AWS_PROFILE"
-
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
    | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
 
-   # This `read` and `printf` are POSIX compatible.
+   # This `read` and `printf` are POSIX compliant.
    printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep '.*' --color=always)]: "
    read -r active_aws_profile
    case "${active_aws_profile}" in
