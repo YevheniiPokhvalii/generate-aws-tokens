@@ -73,7 +73,7 @@ select_aws_region()
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # `aws_profile_esc` escape special characters (taken from the AWS profile function).
    # The solution for profiles with the old naming convention:
-   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep '^region' | awk '{ print $3 }')"
+   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep "^region" | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
@@ -231,9 +231,9 @@ generate_aws_mfa()
    aws sts get-session-token --serial-number "$aws_mfa_device_sn" --token-code "$aws_mfa_code" --profile "$AWS_PROFILE" > "$aws_token_file"
 
    if [ ! -z "${aws_mfa_code}" ]; then
-      export AWS_ACCESS_KEY_ID="$(grep -o '"AccessKeyId": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
-      export AWS_SECRET_ACCESS_KEY="$(grep -o '"SecretAccessKey": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
-      export AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
+      export AWS_ACCESS_KEY_ID="$(grep -o '"AccessKeyId": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      export AWS_SECRET_ACCESS_KEY="$(grep -o '"SecretAccessKey": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      export AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
    fi
 
    echo "------------------"
@@ -244,7 +244,7 @@ generate_aws_mfa()
 
    if [ -s "$aws_token_file" ]; then
       echo "------------------"
-      echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' $aws_token_file | grep -o '[^"]*$')"
+      echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
    fi
 
    rm "$aws_token_file"
