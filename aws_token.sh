@@ -149,7 +149,7 @@ config_tmp_profile()
 # This function should be called after choosing an AWS profile
 delete_aws_profile()
 {
-   echo -n "Are you sure you want to delete this profile? (y/n)? "
+   printf '%s' "Are you sure you want to delete this profile? (y/n)? "
    read answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
       tmp_aws_config='tmp_aws_conf'
