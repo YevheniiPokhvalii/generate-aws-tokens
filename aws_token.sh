@@ -38,7 +38,7 @@ select_aws_profile()
    # The initial profile value
    aws_profile_before="$AWS_PROFILE"
 
-   # escape special characters
+   # escape special characters for the initial profile value
    aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
 
    # An additional grep is added to colorize the output.
