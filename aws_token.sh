@@ -66,7 +66,7 @@ select_aws_profile()
       unset AWS_SESSION_TOKEN
    fi
 
-   printenv | grep AWS_PROFILE || echo "AWS_PROFILE=$AWS_PROFILE"
+   printenv | grep "AWS_PROFILE" || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
 # This function should be called after choosing an AWS profile
@@ -118,7 +118,7 @@ gen_kubeconfig()
 config_tmp_profile()
 {
    if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
-      printenv | grep AWS_PROFILE
+      printenv | grep "AWS_PROFILE"
       echo "WARNING: Do not run the script for a temporary profile"
    elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
       # Calling the function to choose a region. It is implied here that an AWS profile is already selected.
@@ -138,7 +138,7 @@ config_tmp_profile()
       export AWS_PROFILE="$temp_profile_name"
       echo "------------------"
       echo "Temporary MFA profile has been configured: "
-      printenv | grep AWS_PROFILE
+      printenv | grep "AWS_PROFILE"
    else
       select_aws_profile
       generate_aws_mfa
