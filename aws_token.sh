@@ -79,9 +79,9 @@ select_aws_region()
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
-   if [ ! -n "${aws_profile_region}" ] && [ ! -z "${AWS_DEFAULT_REGION}" ]; then
+   if [ ! -z "${AWS_DEFAULT_REGION}" ]; then
       aws_profile_region="$AWS_DEFAULT_REGION"
-   elif [ ! -n "${aws_profile_region}" ] && [ ! -n "${AWS_DEFAULT_REGION}" ]; then
+   elif [ ! -n "${aws_profile_region}" ]; then
       aws_profile_region='eu-central-1'
    fi
 
