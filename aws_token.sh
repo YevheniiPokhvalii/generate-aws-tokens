@@ -79,6 +79,7 @@ select_aws_region()
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
+   # AWS cli region variable precedence. Can be checked with `aws configure list`
    if [ ! -z "${AWS_REGION}" ]; then
       aws_profile_region="$AWS_REGION"
    elif [ ! -z "${AWS_DEFAULT_REGION}" ]; then
