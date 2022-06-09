@@ -139,7 +139,7 @@ config_tmp_profile()
       printf '%s\n' "aws_session_token = $AWS_SESSION_TOKEN" >> "$AWS_SHARED_CREDENTIALS_FILE"
 
       export AWS_PROFILE="$temp_profile_name"
-      echo "------------------"
+      echo "$print_dashes"
       echo "Temporary MFA profile has been configured: "
       printenv | grep "AWS_PROFILE"
    else
@@ -185,31 +185,31 @@ print_masked_var()
    # {255} is the BSD sed limit (MacOS)
    printenv | grep "AWS_ACCESS_KEY_ID" | sed -E "s/(.{23})(.{10})/\1**********/" | grep "AWS_ACCESS_KEY_ID" || \
    echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_SECRET_ACCESS_KEY" | sed -E "s/(.{32})(.{20})/\1**********/" | grep "AWS_SECRET_ACCESS_KEY" || \
    echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_SESSION_TOKEN" | sed -E "s/(.{35})(.{250})/\1**********/"  | grep "AWS_SESSION_TOKEN" || \
    echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_PROFILE" || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
 print_unmasked_var()
 {
    printenv | grep "AWS_ACCESS_KEY_ID" || echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_SECRET_ACCESS_KEY" || echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_SESSION_TOKEN" || echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-   echo "------------------"
+   echo "$print_dashes"
    printenv | grep "AWS_PROFILE" || echo "AWS_PROFILE=$AWS_PROFILE"
 }
 
 aws_vars_unset()
 {
    echo "Variable unset must be done in the current shell only."
-   echo "------------------"
+   echo "$print_dashes"
    unset AWS_ACCESS_KEY_ID
    unset AWS_SECRET_ACCESS_KEY
    unset AWS_SESSION_TOKEN
@@ -241,19 +241,22 @@ generate_aws_mfa()
       export AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
    fi
 
-   echo "------------------"
+   echo "$print_dashes"
    echo "Exported variables:"
-   echo "------------------"
+   echo "$print_dashes"
 
    print_masked_var
 
    if [ -s "$aws_token_file" ]; then
-      echo "------------------"
+      echo "$print_dashes"
       echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      echo "$print_dashes"
    fi
 
    rm "$aws_token_file"
 }
+
+print_dashes="$(printf '%.0s-' {1..20}; echo)"
 
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
 # `getopts` relies on the `OPTIND` variable (OPTIND=1 by default) and that variable works differently in bash and zsh.
