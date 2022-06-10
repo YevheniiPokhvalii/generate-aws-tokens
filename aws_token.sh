@@ -88,6 +88,7 @@ select_aws_region()
       aws_profile_region='eu-central-1'
    fi
 
+   echo "$print_dashes"
    printf '%s' "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep '.*' --color=always)]: "
    read -r read_region
    if [ ! -z "${read_region}" ]; then
@@ -250,7 +251,6 @@ generate_aws_mfa()
    if [ -s "$aws_token_file" ]; then
       echo "$print_dashes"
       echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
-      echo "$print_dashes"
    fi
 
    rm "$aws_token_file"
