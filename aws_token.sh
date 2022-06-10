@@ -47,7 +47,7 @@ select_aws_profile()
    # `aws configure list-profiles` is not used because it is slow
    # aws configure list-profiles | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
    grep -o '^\[.*\]$' "$AWS_CONFIG_FILE" "$AWS_SHARED_CREDENTIALS_FILE" | cut -d ':' -f2- \
-   | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
+   | grep -v "^\[plugins\]$" | sed -e 's/[][]//g' -e 's/^profile //g' | awk '!x[$0]++' | grep -v "^${aws_profile_esc}$" | grep '.*' --color=always || true
 
    # This `read` and `printf` are POSIX compliant.
    printf '%s' "Skip to use [$(printf '%s' "$AWS_PROFILE" | grep '.*' --color=always)]: "
