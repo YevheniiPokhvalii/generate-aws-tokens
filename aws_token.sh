@@ -250,7 +250,11 @@ generate_aws_mfa()
 
    if [ -s "$aws_token_file" ]; then
       echo "$print_dashes"
-      echo "The token expires on $(grep -o '\"Expiration\": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      aws_token_exp_utc="$(grep -o '\"Expiration\": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      aws_token_exp_local="$(date -d "$aws_token_exp_utc" 2>/dev/null \
+      || date -jf "%Y-%m-%dT%X%z" "$(printf '%s' "$aws_token_exp_utc" | sed 's/\(.*\):/\1/')" +"%a %B %d %X %Z %Y" 2>/dev/null \
+      || printf '%s' "$aws_token_exp_utc")"
+      echo "The token expires on $aws_token_exp_local"
    fi
 
    rm "$aws_token_file"
