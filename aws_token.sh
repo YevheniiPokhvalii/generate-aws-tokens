@@ -22,10 +22,10 @@ help()
 
 select_aws_creds()
 {
-   if [ ! -n "${AWS_CONFIG_FILE}" ]; then
+   if [ -z "${AWS_CONFIG_FILE}" ]; then
       AWS_CONFIG_FILE=~/.aws/config
    fi
-   if [ ! -n "${AWS_SHARED_CREDENTIALS_FILE}" ]; then
+   if [ -z "${AWS_SHARED_CREDENTIALS_FILE}" ]; then
       AWS_SHARED_CREDENTIALS_FILE=~/.aws/credentials
    fi
 }
@@ -55,7 +55,7 @@ select_aws_profile()
    case "${active_aws_profile}" in
       *['[]']* ) unset active_aws_profile && echo "ERROR: Special characters are not allowed" ;;
    esac
-   if [ ! -z "${active_aws_profile}" ]; then
+   if [ -n "${active_aws_profile}" ]; then
       export AWS_PROFILE="${active_aws_profile}"
       aws_profile_esc="$(printf '%s' "$AWS_PROFILE" | sed -e 's`[][\\/.*^$]`\\&`g')"
    fi
@@ -75,23 +75,23 @@ select_aws_region()
    # `aws configure get region` does not work with old profiles that did not have the 'profile' prefix in the AWS config file.
    # `aws_profile_esc` escape special characters (taken from the AWS profile function).
    # The solution for profiles with the old naming convention:
-   aws_region_old_profile="$(cat "${AWS_CONFIG_FILE}" | sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' | grep '^region' | awk '{ print $3 }')"
+   aws_region_old_profile="$(sed -n '/^\['"$aws_profile_esc"'\]$/,/^\[/p' "${AWS_CONFIG_FILE}" | grep '^region' | awk '{ print $3 }')"
 
    aws_profile_region="$(aws configure get region || printf '%s' "$aws_region_old_profile")"
 
    # AWS cli region variable precedence. Can be checked with `aws configure list`.
-   if [ ! -z "${AWS_REGION}" ]; then
+   if [ -n "${AWS_REGION}" ]; then
       aws_profile_region="$AWS_REGION"
-   elif [ ! -z "${AWS_DEFAULT_REGION}" ]; then
+   elif [ -n "${AWS_DEFAULT_REGION}" ]; then
       aws_profile_region="$AWS_DEFAULT_REGION"
-   elif [ ! -n "${aws_profile_region}" ]; then
+   elif [ -z "${aws_profile_region}" ]; then
       aws_profile_region='eu-central-1'
    fi
 
    echo "$print_dashes"
    printf '%s' "Enter AWS region. Skip to use [$(printf '%s' "$aws_profile_region" | grep '.*' --color=always)]: "
    read -r read_region
-   if [ ! -z "${read_region}" ]; then
+   if [ -n "${read_region}" ]; then
       aws_profile_region="${read_region}"
    fi
 
@@ -121,23 +121,27 @@ gen_kubeconfig()
 
 config_tmp_profile()
 {
-   if [ "${AWS_PROFILE}" != "${AWS_PROFILE/MFA/}" ]; then
+   if [ "${AWS_PROFILE}" != "$(printf '%s' "${AWS_PROFILE}" | sed 's/MFA//g')" ]; then
       printenv | grep "AWS_PROFILE"
       echo "WARNING: Do not run the script for a temporary profile"
-   elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+   elif [ -n "${AWS_ACCESS_KEY_ID}" ]; then
       # Calling the function to choose a region. It is implied here that an AWS profile is already selected.
       select_aws_region
 
       temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
 
-      printf '\n%s\n' "[profile ${temp_profile_name}]" >> "$AWS_CONFIG_FILE"
-      printf '%s\n' "region = ${aws_profile_region}" >> "$AWS_CONFIG_FILE"
-      printf '%s\n' "output = json" >> "$AWS_CONFIG_FILE"
+      {
+         printf '\n%s\n' "[profile ${temp_profile_name}]"
+         printf '%s\n' "region = ${aws_profile_region}"
+         printf '%s\n' "output = json"
+      } >> "$AWS_CONFIG_FILE"
       
-      printf '\n%s\n' "[${temp_profile_name}]" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf '%s\n' "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf '%s\n' "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> "$AWS_SHARED_CREDENTIALS_FILE"
-      printf '%s\n' "aws_session_token = $AWS_SESSION_TOKEN" >> "$AWS_SHARED_CREDENTIALS_FILE"
+      {
+         printf '\n%s\n' "[${temp_profile_name}]"
+         printf '%s\n' "aws_access_key_id = $AWS_ACCESS_KEY_ID"
+         printf '%s\n' "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY"
+         printf '%s\n' "aws_session_token = $AWS_SESSION_TOKEN"
+      } >> "$AWS_SHARED_CREDENTIALS_FILE"
 
       export AWS_PROFILE="$temp_profile_name"
       echo "$print_dashes"
@@ -146,7 +150,7 @@ config_tmp_profile()
    else
       select_aws_profile
       generate_aws_mfa
-      if [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+      if [ -n "${AWS_ACCESS_KEY_ID}" ]; then
          config_tmp_profile
       fi
    fi
@@ -156,7 +160,7 @@ config_tmp_profile()
 delete_aws_profile()
 {
    printf '%s' "Are you sure you want to delete this profile? (y/n)? "
-   read answer
+   read -r answer
    if [ "$answer" != "${answer#[Yy]}" ]; then
       tmp_aws_config='tmp_aws_conf'
 
@@ -222,12 +226,12 @@ generate_aws_mfa()
    echo "Enter MFA code: "
    aws_mfa_device_sn="$(aws iam list-mfa-devices --profile "$AWS_PROFILE" --output=text --query "MFADevices[0].SerialNumber")"
 
-   if [ ! -n "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
+   if [ -z "${aws_mfa_device_sn}" ] || [ "${aws_mfa_device_sn}" = "None" ]; then
       echo "WARNING: There is no MFA device assigned to this profile"
       return 1
    fi
 
-   read aws_mfa_code
+   read -r aws_mfa_code
    aws_token_file="session-token-$aws_mfa_code.json"
 
    # The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
@@ -236,10 +240,14 @@ generate_aws_mfa()
    # --output=yaml --query "Credentials.{aws_access_key_id: AccessKeyId, aws_secret_access_key: SecretAccessKey, aws_session_token: SessionToken}"
    aws sts get-session-token --serial-number "$aws_mfa_device_sn" --token-code "$aws_mfa_code" --profile "$AWS_PROFILE" > "$aws_token_file"
 
-   if [ ! -z "${aws_mfa_code}" ]; then
-      export AWS_ACCESS_KEY_ID="$(grep -o '"AccessKeyId": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
-      export AWS_SECRET_ACCESS_KEY="$(grep -o '"SecretAccessKey": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
-      export AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+   if [ -n "${aws_mfa_code}" ]; then
+      # Declare and assign separately to avoid masking return values.
+      AWS_ACCESS_KEY_ID="$(grep -o '"AccessKeyId": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      AWS_SECRET_ACCESS_KEY="$(grep -o '"SecretAccessKey": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      AWS_SESSION_TOKEN="$(grep -o '"SessionToken": "[^"]*' "$aws_token_file" | grep -o '[^"]*$')"
+      export AWS_ACCESS_KEY_ID
+      export AWS_SECRET_ACCESS_KEY
+      export AWS_SESSION_TOKEN
    fi
 
    echo "$print_dashes"
@@ -261,7 +269,7 @@ generate_aws_mfa()
    rm "$aws_token_file"
 }
 
-print_dashes="$(printf '%.0s-' {1..20}; echo)"
+print_dashes="--------------------"
 
 # This loop is used instead of `getopts`, since `getopts` is inconsistent when sourcing a script in different shells.
 # `getopts` relies on the `OPTIND` variable (OPTIND=1 by default) and that variable works differently in bash and zsh.
