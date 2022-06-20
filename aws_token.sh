@@ -1,14 +1,29 @@
 #!/bin/sh
 
+aws_script_is_sourced()
+{
+    unset aws_script_sourced
+    if [ -n "$ZSH_EVAL_CONTEXT" ]; then
+        case $ZSH_EVAL_CONTEXT in *:file*) aws_script_sourced=1 ;; esac
+    else
+        case "$(printf '%s' "${0##*/}" | sed 's/-//')" in sh | dash | bash) aws_script_sourced=1 ;; esac
+    fi
+
+    if [ -z "${aws_script_sourced}" ]; then
+        # call help function
+        help
+        exit 1
+    fi
+}
+
 help()
 {
     # Display Help
-    echo "This script must be sourced"
-    echo "in order to get the variables working."
-    echo "Example: 'source ./script' or '. ./script' "
+    echo "This script must be sourced to export AWS variables in the current shell."
     echo
-    echo "Syntax: ./script [-h|c|u|g|o|p|t|d]"
-    echo "options:"
+    echo "Usage:"
+    echo "      source ./script [OPTIONS...]"
+    echo "Options:"
     echo "h     Print Help."
     echo "c     Unset variables."
     echo "u     Update the kubeconfig file."
@@ -215,8 +230,6 @@ print_unmasked_var()
 
 aws_vars_unset()
 {
-    echo "Variable unset must be done in the current shell only."
-    echo "$print_dashes"
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
     unset AWS_SESSION_TOKEN
@@ -270,6 +283,9 @@ generate_aws_mfa()
 
     rm "$aws_token_file"
 }
+
+# Check if the script is sourced.
+aws_script_is_sourced
 
 print_dashes="--------------------"
 
