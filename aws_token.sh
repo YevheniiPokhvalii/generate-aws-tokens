@@ -25,7 +25,7 @@ help()
     echo "      source ./script [OPTIONS...]"
     echo "Options:"
     echo "h     Print Help."
-    echo "c     Unset variables."
+    echo "c     Unset AWS variables."
     echo "u     Update the kubeconfig file."
     echo "g     Generate kubeconfig for the current context."
     echo "o     Print the current unmasked AWS variables."
