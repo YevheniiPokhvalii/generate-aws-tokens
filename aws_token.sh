@@ -144,7 +144,7 @@ config_tmp_profile()
         # Calling the function to choose a region. It is implied here that an AWS profile is already selected.
         select_aws_region
 
-        temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d-%b-%Hh-%Mm-%Ss")"
+        temp_profile_name="MFA-${AWS_PROFILE}-$(date +"%d%bT%H%M%S")"
 
         {
             printf '\n%s\n' "[profile ${temp_profile_name}]"
