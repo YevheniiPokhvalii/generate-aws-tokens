@@ -8,11 +8,11 @@ aws_script_is_sourced()
         case "$(printf '%s' "${0##*/}" | sed 's/-//')" in sh | ksh | dash | bash) return 0 ;; esac
     fi
     # call help function
-    help
+    aws_script_help
     exit 1
 }
 
-help()
+aws_script_help()
 {
     # Display Help
     echo "This script must be sourced to export AWS variables in the current shell."
@@ -294,7 +294,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         -h | --help)
             # display Help
-            help
+            aws_script_help
             return 0
             ;;
         -c | --clear)
