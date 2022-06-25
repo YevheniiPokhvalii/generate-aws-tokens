@@ -2,18 +2,14 @@
 
 aws_script_is_sourced()
 {
-    unset aws_script_sourced
     if [ -n "$ZSH_EVAL_CONTEXT" ]; then
-        case $ZSH_EVAL_CONTEXT in *:file*) aws_script_sourced=1 ;; esac
+        case $ZSH_EVAL_CONTEXT in *:file*) return 0 ;; esac
     else
-        case "$(printf '%s' "${0##*/}" | sed 's/-//')" in sh | dash | bash) aws_script_sourced=1 ;; esac
+        case "$(printf '%s' "${0##*/}" | sed 's/-//')" in sh | ksh | dash | bash) return 0 ;; esac
     fi
-
-    if [ -z "${aws_script_sourced}" ]; then
-        # call help function
-        help
-        exit 1
-    fi
+    # call help function
+    help
+    exit 1
 }
 
 help()
@@ -137,10 +133,17 @@ gen_kubeconfig()
 
 config_tmp_profile()
 {
-    if [ "${AWS_PROFILE}" != "$(printf '%s' "${AWS_PROFILE}" | sed 's/MFA//g')" ]; then
-        printenv | grep "AWS_PROFILE"
-        echo "WARNING: Do not run the script for a temporary profile"
-    elif [ -n "${AWS_ACCESS_KEY_ID}" ]; then
+    if [ "${AWS_PROFILE}" != "$(printf '%s' "${AWS_PROFILE}" | sed 's/MFA//g')" ] || [ -z "${AWS_ACCESS_KEY_ID}" ]; then
+        select_aws_profile
+        if [ "${AWS_PROFILE}" != "$(printf '%s' "${AWS_PROFILE}" | sed 's/MFA//g')" ]; then
+            echo "WARNING: Do not run the script with a temporary profile"
+            return 1
+        fi
+        generate_aws_mfa
+        if [ -n "${AWS_ACCESS_KEY_ID}" ]; then
+            config_tmp_profile
+        fi
+    else
         # Calling the function to choose a region. It is implied here that an AWS profile is already selected.
         select_aws_region
 
@@ -163,12 +166,6 @@ config_tmp_profile()
         echo "$print_dashes"
         echo "Temporary MFA profile has been configured: "
         printenv | grep "AWS_PROFILE"
-    else
-        select_aws_profile
-        generate_aws_mfa
-        if [ -n "${AWS_ACCESS_KEY_ID}" ]; then
-            config_tmp_profile
-        fi
     fi
 }
 
