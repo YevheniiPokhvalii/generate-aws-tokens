@@ -175,7 +175,7 @@ delete_aws_profile()
     printf '%s' "Are you sure you want to delete this profile? (y/n)? "
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ]; then
-        tmp_aws_config='tmp_aws_conf'
+        tmp_aws_config="$(mktemp)"
 
         # `sed -i` works differently on Ubuntu and MacOS so the tmp files were used instead.
         # `aws_profile_esc` escape special characters (taken from the AWS profile function).
@@ -244,7 +244,7 @@ generate_aws_mfa()
     fi
 
     read -r aws_mfa_code
-    aws_token_file="session-token-$aws_mfa_code.json"
+    aws_token_file="$(mktemp -t "aws-session-token.json.$aws_mfa_code.XXX")"
 
     # The credentials duration for IAM user sessions is 43,200 seconds (12 hours) as the default.
     # Alternative: the session token can be saved in a separate [aws_mfa_code] AWS profile to use it across shells.
@@ -278,7 +278,7 @@ generate_aws_mfa()
         echo "The token expires on $aws_token_exp_local_time"
     fi
 
-    rm "$aws_token_file"
+    rm -f "$aws_token_file"
 }
 
 # Check if the script is sourced.
