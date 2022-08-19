@@ -120,10 +120,22 @@ update_kube()
     read -r cluster_name
     printf '%s' "$cluster_name" | grep '.*' --color=always
 
+    printf '%s\n' 'Enter cluster context alias: '
+    printf '%s' "Skip to use [$(printf '%s' "$cluster_name" | grep '.*' --color=always)]: "
+    read -r cluster_alias
+
+    if [ -z "${cluster_alias}" ]; then
+        cluster_alias="$cluster_name"
+    fi
+
     # `aws eks` does not generate a kubeconfig with the --profile flag after MFA
     # so the aws_profile function is used during the flag calling.
     # It adds env AWS_PROFILE in the kubeconfig after its generation.
-    aws eks --region "$aws_profile_region" update-kubeconfig --name "$cluster_name"
+    aws eks --region "$aws_profile_region" update-kubeconfig --name "$cluster_name" --alias "$cluster_alias"
+
+    if [ "${AWS_PROFILE}" != "$(printf '%s' "${AWS_PROFILE}" | sed 's/MFA//g')" ]; then
+        echo "Remove temporary env AWS_PROFILE from kubeconfig"
+    fi
 }
 
 gen_kubeconfig()
