@@ -10,7 +10,7 @@ https://github.com/aws/aws-cli/issues/3346<br>
 https://aws.amazon.com/premiumsupport/knowledge-center/authenticate-mfa-cli/<br>
 https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html<br>
 
-**Prerequisites**: `aws-cli` v2, generated AWS profile with `aws configure`, `kubectl`<br>
+**Prerequisites**: `aws-cli` >= v1.20.x or >= v2.7.x, generated AWS profile with `aws configure`, `kubectl`<br>
 
 > This script must be sourced in order to get the variables working in the current shell.<br>
 Example: `source script.sh` or `. script.sh`<br>
