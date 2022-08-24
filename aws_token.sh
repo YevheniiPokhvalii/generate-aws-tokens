@@ -114,7 +114,7 @@ update_kube()
 {
     # `aws eks list-clusters --profile` does not work after MFA with temporary credentials
     echo "Choose cluster: "
-    aws eks list-clusters --region "$aws_profile_region" --output=yaml --query "clusters" | sed 's/- //' | grep '.*' --color=always
+    aws eks list-clusters --region "$aws_profile_region" --output=text | awk '{ print $2 }' | grep '.*' --color=always
 
     printf 'Enter cluster name: '
     read -r cluster_name
